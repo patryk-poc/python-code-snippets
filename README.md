@@ -1,2 +1,2 @@
 # sample-python-poc
-A sample PoC to test various APIs
+Various code snippets related to PoC - testing libraries, experimenting etc.
