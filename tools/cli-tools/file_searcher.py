@@ -10,7 +10,7 @@ from datetime import datetime
 class FileSearcher:
     """A class to search for patterns in the file names provided."""
 
-    def __init__(self, filename: str, pattern: str, root_dir: str):  # noqa
+    def __init__(self, filename: str, pattern: str, root_dir: str):
         self.filename = filename
         self.pattern = pattern
         self.root_dir = root_dir
