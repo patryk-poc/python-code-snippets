@@ -3,30 +3,38 @@
 import argparse
 import fnmatch
 import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 
 class FileSearcher:
-    """A class to search for a text pattern in the file name."""
+    """A class to search for patterns in the file names provided."""
 
     def __init__(self, filename: str, pattern: str, root_dir: str):  # noqa
         self.filename = filename
         self.pattern = pattern
         self.root_dir = root_dir
 
+    def check_file_content(self, file_path: str):
+        """Search for a pattern in the file."""
+        with open(file_path) as file:
+            for line in file:
+                if self.pattern in line:
+                    modified_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                    print(f"{file_path} last modified at {modified_time}")
+                    break
+
     def search_files(self):
-        """Search for a pattern in the files recursively."""
-        for root, _, filenames in os.walk(self.root_dir):
-            for filename in fnmatch.filter(filenames, self.filename):
-                full_path = os.path.join(root, filename)
-                with open(full_path) as file:
-                    for line in file:
-                        if self.pattern in line:
-                            modified_time = datetime.fromtimestamp(
-                                os.path.getmtime(full_path)
-                            )
-                            print(f"{full_path} last modified at {modified_time}")
-                            break
+        """Scan through all files starting from root dir."""
+        with ThreadPoolExecutor() as executor:
+            for entry in os.scandir(self.root_dir):
+                if entry.is_file() and fnmatch.fnmatch(entry.name, self.filename):
+                    executor.submit(self.check_file_content, entry.path)
+                elif entry.is_dir():
+                    subdir_searcher = FileSearcher(
+                        self.filename, self.pattern, entry.path
+                    )
+                    subdir_searcher.search_files()
 
 
 def main():
