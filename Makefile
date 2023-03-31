@@ -2,14 +2,10 @@
 
 .DEFAULT_GOAL := help
 
-help: check-os
+help:
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 include $(if $(wildcard .env),.env)
-
-# Project setup helper tasks
-check-os:
-	@if [ "$(shell uname -s)" != "Darwin" ]; then echo "Error: Only MAC OS is supported now"; exit 1; fi
 
 # Hooks
 disable-hooks:
@@ -27,9 +23,14 @@ install-hooks: disable-hooks
 update-hooks: ## Auto-update pre-commit config to the latest repos' versions
 	@poetry run pre-commit autoupdate
 
-install: install-hooks ## Install tools
-	@poetry install
+install-with-hooks: install-hooks install ## Install with hooks for local dev only
+
+install: ## Install tools
+	@poetry install --no-root
 
 # Tests
-test: ## Run unit tests
+test-clean:
+	@rm -rf .coverage .pytest_cache 2>/dev/null
+
+test: test-clean ## Run unit tests
 	@poetry run pytest

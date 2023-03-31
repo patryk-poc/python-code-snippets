@@ -1,0 +1,35 @@
+name: Run unit tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/*'
+      - 'hotfix/*'
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install poetry
+        poetry debug info
+        make install
+
+    - name: Run tests with pytest
+      run: |
+        python3 -c "import sys; print('\n'.join(sys.path))"
+        make test
