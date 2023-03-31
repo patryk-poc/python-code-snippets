@@ -11,15 +11,12 @@ include $(if $(wildcard .env),.env)
 check-os:
 	@if [ "$(shell uname -s)" != "Darwin" ]; then echo "Error: Only MAC OS is supported now"; exit 1; fi
 
-# Install
+# Hooks
 disable-hooks:
 	@git config --global --unset core.hooksPath || true
 	@git config --global --unset hooks.gitleaks || true
 	@git config --local --unset core.hooksPath || true
 	@if [ -f .git/hooks/pre-commit ]; then rm .git/hooks/pre-commit; fi
-
-update-hooks: ## Auto-update pre-commit config to the latest repos' versions
-	@poetry run pre-commit autoupdate
 
 install-hooks: disable-hooks
 	@poetry run pre-commit install
@@ -27,5 +24,12 @@ install-hooks: disable-hooks
 	@git config --global core.hooksPath $(HOME)/.GitClientHooks
 	@git config --local core.hooksPath .git/hooks
 
+update-hooks: ## Auto-update pre-commit config to the latest repos' versions
+	@poetry run pre-commit autoupdate
+
 install: install-hooks ## Install tools
 	@poetry install
+
+# Tests
+test: ## Run unit tests
+	@poetry run pytest

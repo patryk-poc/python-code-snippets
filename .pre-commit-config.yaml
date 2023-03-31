@@ -33,3 +33,4 @@ repos:
         args:
           - --max-line-length=120
           - --docstring-convention=google
+        exclude: ^tests
