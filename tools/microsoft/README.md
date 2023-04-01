@@ -1,7 +1,7 @@
 - [Microsoft](#microsoft)
 - [Scripts](#scripts)
   - [MS Teams notification](#ms-teams-notification)
-  - [Documenation](#documenation)
+  - [Documentation](#documentation)
 
 # Microsoft
 
@@ -20,7 +20,7 @@ Then simply run:
 
 The message will be sent to the configured channel.
 
-## Documenation
+## Documentation
 
 - Create [Incoming Webhook](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook)
 - Create and [send messages](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/connectors-using?tabs=cURL#sending-a-card-using-an-incoming-webhook)
