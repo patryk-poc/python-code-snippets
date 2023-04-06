@@ -15,13 +15,55 @@ import os
 import shlex
 import subprocess
 import time
+from dataclasses import dataclass
 
 import pkg_resources
 
+
+@dataclass
+class Color:
+    """ANSI colors."""
+
+    GREEN: str = "\033[32m"
+    RED: str = "\033[31m"
+    BLUE: str = "\033[34m"
+    YELLOW: str = "\033[33m"
+    RESET: str = "\033[0m"
+
+
+class ColoredLogger(logging.Logger):
+    """Add colors to log messages on stdout."""
+
+    def __init__(self, name, level=logging.NOTSET):
+        super().__init__(name, level=level)
+        self._add_color_handler()
+
+    def _add_color_handler(self):
+        """Helper method to add color handler."""
+
+        def add_handler(handler, formatter, level=None):
+            handler.setFormatter(formatter)
+            if level:
+                handler.setLevel(level)
+            self.addHandler(handler)
+
+        formatter_info = logging.Formatter(
+            f"%(asctime)s %(levelname)s {Color.GREEN}%(message)s{Color.RESET}"
+        )
+        formatter_error = logging.Formatter(
+            f"%(asctime)s %(levelname)s {Color.RED}%(message)s{Color.RESET}"
+        )
+
+        color_handler = logging.StreamHandler()
+        error_color_handler = logging.StreamHandler()
+
+        add_handler(color_handler, formatter_info)
+        add_handler(error_color_handler, formatter_error, logging.ERROR)
+
+
+logging.setLoggerClass(ColoredLogger)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format="%(asctime)s %(levelname)-8s %(message)s", level=logging.INFO
-)
 
 
 class GitRepositoryUpdater:
@@ -32,19 +74,8 @@ class GitRepositoryUpdater:
     REQUIRED_DEPENDENCY = "git-up"
 
     def __init__(self, path: str = ".", keywords: list = None):
-        """Initialize the class.
-
-        Args:
-            path (str, optional): Root directory to start search for GIt repos. Defaults to ".".
-            keywords (_type_, optional): Keywords list to be filter out some paths. Defaults to None.
-        """
         self._is_package_installed(self.REQUIRED_DEPENDENCY)
         self.repos = self.find_git_repos(path, keywords)
-
-    @property
-    def repositories(self):
-        """All repositories path discovered."""
-        return self.repos
 
     def find_git_repos(self, path: str, keywords: list = None):
         """Discover all Git repositories full paths."""
@@ -69,13 +100,8 @@ class GitRepositoryUpdater:
             return repo_path.strip(self.GIT_DIR)
         return None
 
-    def _run_git_command(self, command: str, repo_dir: str):
-        """Run a Git command in a given repository directory.
-
-        Args:
-            command (str): The Git command to run.
-            repo_dir (str): The path to the repository where the command should be executed.
-        """
+    def _run_command(self, command: str, repo_dir: str):
+        """Run a command inside repository."""
         logger.info(f'Running "{command}" in {repo_dir}')
 
         try:
@@ -99,16 +125,12 @@ class GitRepositoryUpdater:
             )
 
     def fetch_git_remote(self, repo_dir: str):
-        """Fetch remote Git repository data.
-
-        Args:
-            repo_dir (str): The path to the repository where the command should be executed.
-        """
+        """Fetch remote Git repository data."""
         logger.info(f"Entering Git directory: {repo_dir}")
         os.chdir(repo_dir)
 
-        self._run_git_command("git up", repo_dir)
-        self._run_git_command("git fetch origin --prune", repo_dir)
+        self._run_command("git up", repo_dir)
+        self._run_command("git fetch origin --prune", repo_dir)
 
         logger.info(f"Finished updating {repo_dir}")
 
@@ -170,11 +192,11 @@ def sync_git_repos(parser):
     full_path = os.path.abspath(parser.path)
 
     updater = GitRepositoryUpdater(path=full_path, keywords=parser.keywords)
-    if not updater.repositories:
+    if not updater.repos:
         logger.warning("No Git repositories found to be synced with Git remote.")
     else:
         logger.info("Start syncing Git repositories.")
-        for repo_dir in updater.repositories:
+        for repo_dir in updater.repos:
             updater.fetch_git_remote(repo_dir)
 
 
@@ -182,15 +204,12 @@ def main():
     """Main program."""
     script_dir = os.getcwd()
     start_time = time.time()
-    logger.info(f"Current working directory: {script_dir}")
 
     parser = CommandParser()
-    # TODO implement logging to a file
     if parser.log:
         logger.info("Logging to file enabled")
 
     sync_git_repos(parser)
-
     os.chdir(script_dir)
     log_processing_time(start_time)
 
