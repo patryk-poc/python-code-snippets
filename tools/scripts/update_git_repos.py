@@ -16,6 +16,8 @@ import shlex
 import subprocess
 import time
 
+import pkg_resources
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     format="%(asctime)s %(levelname)-8s %(message)s", level=logging.INFO
@@ -27,6 +29,7 @@ class GitRepositoryUpdater:
 
     GIT_DIR = ".git"
     PATHS_TO_EXCLUDE = (".terraform",)
+    REQUIRED_DEPENDENCY = "git-up"
 
     def __init__(self, path: str = ".", keywords: list = None):
         """Initialize the class.
@@ -35,6 +38,7 @@ class GitRepositoryUpdater:
             path (str, optional): Root directory to start search for GIt repos. Defaults to ".".
             keywords (_type_, optional): Keywords list to be filter out some paths. Defaults to None.
         """
+        self._is_package_installed(self.REQUIRED_DEPENDENCY)
         self.repos = self.find_git_repos(path, keywords)
 
     @property
@@ -85,12 +89,22 @@ class GitRepositoryUpdater:
             logger.error(f'Error running "{command}": {e.output.decode("utf-8")}')
             return
 
+    def _is_package_installed(self, package: str):
+        package_list = {pkg.key for pkg in pkg_resources.working_set}
+        if package in package_list:
+            return True
+        else:
+            raise ValueError(
+                f"Package {package} is not absent. Install via pip install"
+            )
+
     def fetch_git_remote(self, repo_dir: str):
         """Fetch remote Git repository data.
 
         Args:
             repo_dir (str): The path to the repository where the command should be executed.
         """
+        logger.info(f"Entering Git directory: {repo_dir}")
         os.chdir(repo_dir)
 
         self._run_git_command("git up", repo_dir)
@@ -153,7 +167,9 @@ def log_processing_time(start_time: float):
 
 def sync_git_repos(parser):
     """Sync Git remote repositories with a local copy."""
-    updater = GitRepositoryUpdater(path=parser.path, keywords=parser.keywords)
+    full_path = os.path.abspath(parser.path)
+
+    updater = GitRepositoryUpdater(path=full_path, keywords=parser.keywords)
     if not updater.repositories:
         logger.warning("No Git repositories found to be synced with Git remote.")
     else:
@@ -164,7 +180,9 @@ def sync_git_repos(parser):
 
 def main():
     """Main program."""
-    script_dir, start_time = os.getcwd(), time.time()
+    script_dir = os.getcwd()
+    start_time = time.time()
+    logger.info(f"Current working directory: {script_dir}")
 
     parser = CommandParser()
     # TODO implement logging to a file
